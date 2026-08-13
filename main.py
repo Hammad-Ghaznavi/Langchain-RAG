@@ -16,23 +16,45 @@ from langchain_core.messages import HumanMessage, AIMessage
 load_dotenv()
 
 def initialize_vector_store(file_path: str, persist_dir: str = "./chroma_db"):
-    """Loads and embeds documents using native Python, saving them to disk."""
+    """Loads the CMU Book Summary Dataset (booksummaries.txt)."""
     embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
-    # 1. Load instantly if the database already exists
+    
     if os.path.exists(persist_dir):
-        print("Loading existing vector database from disk...")
+        print("Loading existing library database from disk...")
         vectorstore = Chroma(persist_directory=persist_dir, embedding_function=embeddings)
-        return vectorstore.as_retriever()
+        return vectorstore.as_retriever(search_kwargs={"k": 2})
         
-    print("Building and embedding new vector database...")
+    print("Cataloging CMU dataset into vector database (this may take a few minutes)...")
     
-    # 2. Native Python file loading (This completely fixes the DeprecationWarning)
-    with open(file_path, "r", encoding="utf-8") as file:
-        text_content = file.read()
-    
-    docs = [Document(page_content=text_content, metadata={"source": file_path})]
+    docs = []
+    # Native Python CSV loading configured for Tab-Separated Values (TSV)
+    with open(file_path, mode="r", encoding="utf-8") as file:
+        tsv_reader = csv.reader(file, delimiter='\t')
+        
+        for row in tsv_reader:
+            # The CMU dataset has 7 columns; we skip any malformed rows
+            if len(row) < 7:
+                continue
+                
+            content = row[6] # The Plot Summary
+            
+            # Map the metadata using the strict column indices
+            metadata = {
+                "title": row[2] if row[2] else "Unknown Title",
+                "author": row[3] if row[3] else "Unknown Author",
+                "year": row[4] if row[4] else "Unknown Year"
+            }
+            
+            # Ensure we don't embed empty strings
+            if content.strip():
+                docs.append(Document(page_content=content, metadata=metadata))
+                
+    # --- IMPORTANT PORTFOLIO TIP ---
+    # The CMU dataset has over 16,500 books. Embedding all of them via the API 
+    # will take a long time and might hit free-tier rate limits. 
+    # Uncomment the line below to test the pipeline with just the first 500 books first:
+    # docs = docs[:500] 
 
-    # 3. Split and persist
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     splits = text_splitter.split_documents(docs)
 
@@ -41,13 +63,14 @@ def initialize_vector_store(file_path: str, persist_dir: str = "./chroma_db"):
         embedding=embeddings,
         persist_directory=persist_dir
     )
-    return vectorstore.as_retriever()
+    # Return the top 2 closest book matches
+    return vectorstore.as_retriever(search_kwargs={"k": 2})
 
 def format_docs(docs):
     return "\n\n".join(doc.page_content for doc in docs)
 
 def main():
-    retriever = initialize_vector_store("data/knowledge_base.txt")
+    retriever = initialize_vector_store("data/booksummaries.txt")
     
     # Swapped to 3.5-flash to regain control and prevent the 400 Crash
     llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash", temperature=0.3)
