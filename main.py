@@ -1,4 +1,7 @@
 import os
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
+os.environ["CHROMA_TELEMETRY"] = "False"
+import csv
 from dotenv import load_dotenv
 
 # Modern Core Imports (Notice we removed langchain_community entirely)
@@ -67,7 +70,17 @@ def initialize_vector_store(file_path: str, persist_dir: str = "./chroma_db"):
     return vectorstore.as_retriever(search_kwargs={"k": 2})
 
 def format_docs(docs):
-    return "\n\n".join(doc.page_content for doc in docs)
+    """Formats the retrieved documents to include the Title and Author metadata."""
+    formatted_chunks = []
+    for doc in docs:
+        title = doc.metadata.get("title", "Unknown Title")
+        author = doc.metadata.get("author", "Unknown Author")
+        plot = doc.page_content
+        
+        # Combine the metadata and the plot so the AI can read all of it
+        formatted_chunks.append(f"Title: {title}\nAuthor: {author}\nPlot Summary: {plot}")
+        
+    return "\n\n---\n\n".join(formatted_chunks)
 
 def main():
     retriever = initialize_vector_store("data/booksummaries.txt")
