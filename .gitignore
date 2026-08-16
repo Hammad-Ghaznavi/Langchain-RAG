@@ -11,3 +11,4 @@ chroma_db/
 # Python Cache
 __pycache__/
 *.pyc
+tempCodeRunnerFile.py
