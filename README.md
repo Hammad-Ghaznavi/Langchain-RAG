@@ -27,5 +27,39 @@ BiblioBot is a full-stack, conversational Retrieval-Augmented Generation (RAG) a
 
 **1. Clone the repository**
 ```bash
-git clone [https://github.com/Hammad-Ghaznavi/gemini-rag-engine.git](https://github.com/Hammad-Ghaznavi/gemini-rag-engine.git)
-cd gemini-rag-engine
+git clone [https://github.com/Hammad-Ghaznavi/Langchain-RAG.git](https://github.com/Hammad-Ghaznavi/Langchain-RAG.git)
+cd Langchain-RAG
+```
+
+**2. Set up the virtual environment**
+```bash
+python -m venv venv
+# On Windows:
+venv\Scripts\activate
+# On Mac/Linux:
+source venv/bin/activate
+```
+
+**3. Install dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+**4. Configure Environment Variables**
+Create a `.env` file in the root directory and add your Google AI Studio API key:
+```env
+GOOGLE_API_KEY=your_api_key_here
+```
+
+**5. Add the Dataset**
+* Download the **CMU Book Summary Dataset** (`booksummaries.txt`).
+* Place the file inside a `data/` folder in the root directory (`data/booksummaries.txt`).
+
+**6. Launch the Application**
+```bash
+streamlit run app.py
+```
+*Note: On the very first run, the application will take a moment to embed the dataset and build the local `chroma_db` folder. Subsequent launches will load the database instantly from disk.*
+
+---
+**Author:** [Hammad Ghaznavi](https://github.com/Hammad-Ghaznavi)
